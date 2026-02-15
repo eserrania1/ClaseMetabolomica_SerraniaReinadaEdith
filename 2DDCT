@@ -1,0 +1,28 @@
+#Ejercicio 2DDCT
+#install.packages("pacman") #Es un paquete que llama otros paquetes y si no están los instala
+library("pacman") #esta función llama al paquete instalado
+#vamos a llamar una función que es específica del paquete
+p_load("ggplot2",#sirve para graficar
+       "dplyr", #facilita el manejo de datos
+       "vroom") #llamar repositorios
+Datos_PCR<-vroom(file="https://raw.githubusercontent.com/ManuelLaraMVZ/resultados_PCR_practica/refs/heads/main/Genes.csv")
+Datos_PCR
+#lo primero es sacar el Ct de la actina
+Gen_ref<-Datos_PCR%>% #crt+shift+m
+  filter(Gen =="B-actina") #filter sirve para seleccionar filas
+  select(-1)
+Gen_ref  
+Gen_int<-Datos_PCR%>% 
+  filter(Gen != "B-actina") %>%  #aquí le decimos que todo menos la primera fila
+  select(-1)
+Gen_int
+DCT<-Gen_int %>% 
+  mutate(DC1 = C1 - Gen_ref$C1,
+         DC2 = C2 - Gen_ref$C2,
+         DC3 = C3 - Gen_ref$C3,
+         DT1 = T1 - Gen_ref$T1,
+         DT2 = T2 - Gen_ref$T2,
+         DT3 = T3 - Gen_ref$T3) %>%
+  select(-1: -6) %>% 
+  mutate(DosDCT1 = 2^-DC1)
+DCT
