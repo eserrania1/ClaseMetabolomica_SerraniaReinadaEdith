@@ -1,0 +1,231 @@
+---
+title: "Curvas de disociación RT-qPCR, Portafolio"
+author: "Edith Serranía"
+date: "2026-03-19"
+output: html_document
+---
+Primero cargamos la paquetería necesaria
+```{r}
+
+if(!require(pacman))
+  install.packages("pacman")
+
+library(pacman)
+
+
+p_load("vroom",
+       "dplyr",
+       "ggplot2",
+       "tidyr",
+       "ggrepel",
+       "plotly")
+```
+Cargar la base de datos
+
+```{r}
+Melting_curves <- vroom(file = "https://raw.githubusercontent.com/ManuelLaraMVZ/resultados_PCR_practica/refs/heads/main/Disoci_ejemplo1.csv")
+Melting_curves
+
+```
+
+Modificar la base de datos
+
+```{r}
+Melting_curves2 <- Melting_curves %>% 
+    mutate(Temperatura = Temperature, DDR = A1, JRWF = B1, PPOF = C1, MLL = D1, H2O = E1) %>% 
+  select(-Temperature:-E1)
+
+Melting_curves2
+```
+
+Agrupar los datos en una sola tabla
+
+```{r}
+Melting_curves3 <- Melting_curves2 %>% 
+  pivot_longer(cols = -Temperatura,
+               names_to = "Muestras",
+               values_to = "Fluorescencias")
+
+Melting_curves3
+```
+
+Colores para la gráfica en HTML
+
+```{r}
+colores_pastel <- c(
+  "DDR"  = "#f4a7c1",
+  "JRWF" = "#c7b3e5",
+  "PPOF" = "#a7c7f4",
+  "MLL"  = "#e8b4d8",
+  "H2O"  = "#b5d8f6"
+)
+```
+
+Gráfica de disosiación
+
+```{r}
+Grafica_melting <- ggplot(Melting_curves3,
+                          aes( x = Temperatura,
+                               y = Fluorescencias,
+                               color = Muestras)) +
+  geom_line(linewidth = 1.5)+
+  scale_color_manual(values = colores_pastel)+
+  theme_classic()+
+  labs(title = "Curvas de disociación",
+       subtitle = "Todas las muestras",
+       caption = "Diseñó: Edith Serranía Reinada",
+       x = "Temperatura (° C)",
+       y = "Fluorescencia (u.a.)")+
+    theme(axis.line = element_line (linewidth = 1.2, color = "black"),
+        axis.title = element_text(face = "bold"),
+        axis.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "bold"))
+
+Grafica_melting
+```
+
+Luego tenemos que sacar las derivadas para observar los picos en la curva
+
+```{r}
+Derivadas <- Melting_curves2 %>% 
+  mutate(across(DDR:H2O, 
+                ~ -c(NA, diff(.x)/diff(Melting_curves2$Temperatura)), .names = "d_{.col}")) %>% 
+  select(-DDR: -H2O) %>% 
+  slice(-1)
+
+Derivadas
+```
+
+Reordenar los datos de las derivadas
+
+```{r}
+Derivadas2 <- Derivadas %>% 
+  pivot_longer(cols= -Temperatura,
+               names_to = "Muestras",
+               values_to = "Derivadas")
+
+Derivadas2
+```
+
+Colores en HTML para la segunda gráfica
+
+```{r}
+colores_pastel_deriv <- c(
+  "d_DDR"  = "#f4a7c1",
+  "d_JRWF" = "#c7b3e5",
+  "d_PPOF" = "#a7c7f4",
+  "d_MLL"  = "#e8b4d8",
+  "d_H2O"  = "#b5d8f6"
+)
+```
+
+Sacar la gráfica de las derivadas
+
+```{r}
+Grafica_derivada <- ggplot(Derivadas2,
+                           aes(x = Temperatura,
+                               y = Derivadas,
+                               color = Muestras))+
+    geom_line(linewidth = 1.5)+
+    scale_color_manual(values = colores_pastel_deriv)+
+    theme_classic()+
+  labs(title = "Curvas de la derivada de disociacion",
+       subtitle = "Todas las muestras",
+       caption = "Diseñó: Edith Serranía Reinada",
+       x = "Temperatura (° C)",
+       y = expression(-Delta~F / Delta~T))+
+    theme(axis.line = element_line (linewidth = 1.2, color = "black"),
+        axis.title = element_text(face = "bold"),
+        axis.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "bold"))+
+  scale_x_continuous(breaks = seq(min(Derivadas2$Temperatura),
+                                  max(Derivadas2$Temperatura),
+                                  by = 2.5))
+
+Grafica_derivada
+```
+
+Hacer la gráfica 3D
+
+```{r}
+Grafica_derivada_3D <- plot_ly(Derivadas2,
+                               x = ~Temperatura,
+                               y = ~Muestras,
+                               z = ~Derivadas,
+                               color = ~factor(Muestras),
+                               colors = c("#f4a7c1","#c7b3e5","#a7c7f4","#e8b4d8","#b5d8f6"),
+                               type = "scatter3d",
+                               mode = "lines",
+                               line = list(width = 6)) %>%
+  layout(title = "Curvas de derivada en 3D",
+         scene = list(
+           xaxis = list(title = "Temperatura (°C)"),
+           yaxis = list(title = "Muestras"),
+           zaxis = list(title = "-ΔT/ΔF")
+         ))
+
+Grafica_derivada_3D
+```
+
+Después sacamos la gráfica de un solo equipo, por ejemplo MLL
+
+```{r}
+Grafica_derivada_equipo <- ggplot(Derivadas,
+                                  aes(x = Temperatura))+
+  geom_line(aes(y = d_MLL, color = "d_MLL"), linewidth = 1.5) +
+  geom_line(aes(y = d_H2O, color = "d_H2O"), linewidth = 1.5) +
+  scale_color_manual(values = c("d_MLL" = "#c7b3e5", 
+                                "d_H2O" = "#a7c7f4")) +
+  theme_classic()+
+  labs(title = "Derivada de Disociación",
+       subtitle = "Tejido: Cerebro",
+       caption = "Diseñó: Edith Serranía Reinada",
+       x = "Temperatura",
+       y = expression(-Delta~F / Delta~T))+
+    theme(axis.line = element_line (linewidth = 1.2, color = "black"),
+        axis.title = element_text(face = "bold"),
+        axis.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        legend.text = element_text(face = "bold"))+
+  scale_x_continuous(breaks = seq(min(Derivadas2$Temperatura),
+                                  max(Derivadas2$Temperatura),
+                                  by = 2.5))
+
+Grafica_derivada_equipo
+```
+
+Calculamos la Tm de la muestra
+
+```{r}
+Pico <- max(Derivadas$d_MLL)
+
+Tm <- Derivadas %>% 
+  filter(d_MLL == Pico) %>% 
+  select(Temperatura, d_MLL)
+
+Tm
+```
+
+Sacar la gráfica final indicando la Tm 
+
+```{r}
+Grafica_derivada_equipo2 <- Grafica_derivada_equipo+
+  geom_vline(xintercept = Tm$Temperatura, 
+             color = "#f4a7c1", 
+             linetype = "dashed", 
+             linewidth = 1)+
+  geom_label_repel(data = Tm,
+                   aes(x = Temperatura,
+                       y = d_MLL,
+                       label = paste("Tm = ", round(Temperatura), "° C")),
+                   nudge_x = 4,
+                   nudge_y = -0.03,
+                   max.overlaps = 100, 
+                   color = "black",
+                   fill = "#e8b4d8")
+
+Grafica_derivada_equipo2
+```
+
