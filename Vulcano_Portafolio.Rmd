@@ -1,0 +1,293 @@
+---
+title: "Vulcano plot"
+author: "Edith Serranía"
+date: "2026-03-24"
+output: html_document
+---
+
+```{r}
+library(pacman)
+
+p_load("readr", #para llamar la base de datos
+       "ggplot2", #para graficar
+       "ggrepel", #para etiquetar datos en una gráfica
+       "dplyr", #para facilitar el manejo de datos
+       "matrixTests") #para realizar la prueba estadística 
+```
+
+```{r}
+datos <- read_csv(file = "https://raw.githubusercontent.com/ManuelLaraMVZ/Transcript-mica/refs/heads/main/datos_miRNAs.csv") 
+head(datos)
+```
+
+```{r}
+Controles <- datos %>% 
+  filter(Condicion == "Control")
+
+head(Controles)
+```
+
+```{r}
+promedio_controles <- Controles %>% 
+  summarise(Mean_C1 = mean(Cx1), 
+            Mean_C2 = mean(Cx2), 
+            Mean_C3 = mean(Cx3),
+            Mean_T1 = mean(T1), 
+            Mean_T2 = mean(T2), 
+            Mean_T3 = mean(T3)) %>% 
+  mutate(Gen = "Promedio_controles") %>% 
+  select(7,1,2,3,4,5,6)
+promedio_controles
+```
+
+```{r}
+genes <- datos %>% 
+  filter(Condicion == "Target") %>% 
+  select(-2)
+head(genes)
+```
+
+```{r}
+DCT <- genes %>% 
+  mutate(DCT_C1=2^-(Cx1 - promedio_controles$Mean_C1),
+         DCT_C2=2^-(Cx2 - promedio_controles$Mean_C2),
+         DCT_C3=2^-(Cx3 - promedio_controles$Mean_C3),
+         DCT_T1=2^-(T1 - promedio_controles$Mean_T1),
+         DCT_T2=2^-(T2 - promedio_controles$Mean_T2),
+         DCT_T3=2^-(T3 - promedio_controles$Mean_T3)) %>% 
+  select(-2,-3,-4,-5,-6,-7) 
+
+DCT 
+```
+
+```{r}
+promedio_genes <- DCT %>% 
+  mutate(Mean_DCT_Cx = (DCT_C1+DCT_C2+DCT_C3)/3,
+         Mean_DCT_Tx = (DCT_T1+DCT_T2+DCT_T3)/3)
+
+promedio_genes
+```
+
+```{r}
+tvalue_gen <- row_t_welch(promedio_genes[, c("DCT_C1", 
+                                             "DCT_C2", 
+                                             "DCT_C3")],
+                          promedio_genes[, c("DCT_T1", 
+                                             "DCT_T2", 
+                                             "DCT_T3")])
+head(tvalue_gen)
+```
+
+```{r}
+FcYPV <- promedio_genes %>% 
+  select(1, 8, 9) %>% 
+  mutate(p_value = tvalue_gen$pvalue,
+         Fold_change = Mean_DCT_Tx / Mean_DCT_Cx) %>% 
+  select(1, 4, 5)
+
+FcYPV
+```
+
+```{r}
+Logs <- FcYPV %>% 
+  mutate(LPV = -log10(p_value),
+         LFC = log2(Fold_change)) %>% 
+  select(1, 4, 5)
+# eje de las x es el valor de Fc y el valor de y es -logpvalue
+
+Logs
+```
+
+```{r}
+tvalue_gen <- row_t_welch(promedio_genes[, c("DCT_C1", 
+                                             "DCT_C2", 
+                                             "DCT_C3")],
+                          promedio_genes[, c("DCT_T1", 
+                                             "DCT_T2", 
+                                             "DCT_T3")])
+head(tvalue_gen)
+```
+
+```{r}
+FcYPV <- promedio_genes %>% 
+  select(1, 8, 9) %>% 
+  mutate(p_value = tvalue_gen$pvalue,
+         Fold_change = Mean_DCT_Tx / Mean_DCT_Cx) %>% 
+  select(1, 4, 5)
+
+FcYPV
+```
+
+```{r}
+Logs <- FcYPV %>% 
+  mutate(LPV = -log10(p_value),
+         LFC = log2(Fold_change)) %>% 
+  select(1, 4, 5)
+# eje de las x es el valor de Fc y el valor de y es -logpvalue
+
+Logs
+```
+
+```{r}
+tvalue_gen <- row_t_welch(promedio_genes[, c("DCT_C1", 
+                                             "DCT_C2", 
+                                             "DCT_C3")],
+                          promedio_genes[, c("DCT_T1", 
+                                             "DCT_T2", 
+                                             "DCT_T3")])
+head(tvalue_gen)
+```
+
+```{r}
+FcYPV <- promedio_genes %>% 
+  select(1, 8, 9) %>% 
+  mutate(p_value = tvalue_gen$pvalue,
+         Fold_change = Mean_DCT_Tx / Mean_DCT_Cx) %>% 
+  select(1, 4, 5)
+
+FcYPV
+```
+
+```{r}
+Logs <- FcYPV %>% 
+  mutate(LPV = -log10(p_value),
+         LFC = log2(Fold_change)) %>% 
+  select(1, 4, 5)
+
+
+Logs
+```
+
+```{r}
+tvalue_gen <- row_t_welch(promedio_genes[, c("DCT_C1", 
+                                             "DCT_C2", 
+                                             "DCT_C3")],
+                          promedio_genes[, c("DCT_T1", 
+                                             "DCT_T2", 
+                                             "DCT_T3")])
+head(tvalue_gen) 
+
+summary(tvalue_gen)
+```
+
+```{r}
+FcYPV <- promedio_genes %>% 
+  select(1, 8, 9) %>% 
+  mutate(p_value = tvalue_gen$pvalue,
+         Fold_change = Mean_DCT_Tx / Mean_DCT_Cx) %>% 
+  select(1, 4, 5)
+
+FcYPV
+```
+
+```{r}
+Logs <- FcYPV %>% 
+  mutate(LPV = -log10(p_value),
+         LFC = log2(Fold_change)) %>% 
+  select(1, 4, 5)
+# eje de las x es el valor de Fc y el valor de y es -logpvalue
+
+Logs
+```
+
+```{r}
+vulcano <- ggplot(Logs, mapping = aes(x = LFC, 
+                                       y = LPV)) +
+  geom_point(size = 2, 
+             color = "#A56CC1")+
+  theme_classic()+
+  labs(title = "Análisis comparativo de miRNAs",
+       caption = "Diseñó: Edith Serranía Reinada",
+       x = "Log2 (2-DDCT)",
+       y = "-Log10 (valor de p)")
+
+ 
+vulcano
+```
+
+DEfinir significancia
+```{r}
+limite_p <- 0.05
+limite_FC <- 1.5
+```
+
+Filtrar genes
+```{r}
+down_regulated <- Logs %>% 
+  filter(LFC < -log2(limite_FC), 
+         LPV > -log10(limite_p))
+
+up_regulated <- Logs %>% 
+  filter(LFC > log2(limite_FC), 
+         LPV > -log10(limite_p))
+```
+
+Filtrar top 5 más significativos
+```{r}
+top_down_regulated <- down_regulated %>% 
+  arrange(desc(LPV)) %>% 
+  head(5)
+
+top_up_regulated <- up_regulated %>% 
+  arrange(desc(LPV)) %>% 
+  head(5)
+```
+
+Lineas y valores de referencia
+```{r}
+vulcano2 <- vulcano +
+  geom_hline(yintercept = -log10(limite_p), 
+             linetype = "dashed", color = "black") +
+  geom_vline(xintercept = log2(limite_FC), 
+             linetype = "dashed", color = "black") +
+  geom_vline(xintercept = -log2(limite_FC), 
+             linetype = "dashed", color = "black")
+
+vulcano2
+```
+
+Añadir puntos de los genes significativos
+```{r}
+vulcano3 <- vulcano2 +
+  geom_point(data = up_regulated, 
+             aes(x = LFC, y = LPV), 
+             alpha = 1, size = 3, color = "#E64B35") +
+ 
+   
+   geom_point(data = down_regulated, 
+             aes(x = LFC, y = LPV), 
+             alpha = 1, size = 3, color = "#8FBAFA")
+
+vulcano3
+
+```
+
+Poner etiquetas
+```{r}
+library(ggrepel)
+library(grid)  # necesario para usar unit()
+
+vulcano4 <- vulcano3 +
+  geom_label_repel(data = top_up_regulated,
+                   aes(x = LFC, y = LPV, label = Gen),
+                   box.padding = unit(0.35, "lines"),
+                   point.padding = unit(0.5, "lines"),
+                   segment.color = "grey50",
+                   segment.size = 0.2,
+                   max.overlaps = 50,
+                   nudge_x = 0.5, 
+                   nudge_y = 0.5,
+                   show.legend = FALSE) +
+  geom_label_repel(data = top_down_regulated,
+                   aes(x = LFC, y = LPV, label = Gen),
+                   box.padding = unit(0.35, "lines"),
+                   point.padding = unit(0.5, "lines"),
+                   segment.color = "grey50",
+                   segment.size = 0.2,
+                   max.overlaps = 50,
+                   nudge_x = -0.5, 
+                   nudge_y = -0.5,
+                   show.legend = FALSE)
+vulcano4                   
+```
+
